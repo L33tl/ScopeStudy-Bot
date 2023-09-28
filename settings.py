@@ -10,8 +10,15 @@ class Bots:
 
 
 @dataclass
+class DataBase:
+    path: str
+    users: str = 'users'
+
+
+@dataclass
 class Settings:
     bots: Bots
+    database: DataBase
 
 
 def get_settings(path: str):
@@ -20,6 +27,9 @@ def get_settings(path: str):
     return Settings(
         bots=Bots(
             bot_token=getenv('BOT_TOKEN'),
-            admin_id=int(getenv('ADMIN_ID'))
+            admin_id=int(getenv('ADMIN_ID')),
+        ),
+        database=DataBase(
+            path=getenv('DB_PATH')
         )
     )
