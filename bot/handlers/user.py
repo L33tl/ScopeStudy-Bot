@@ -1,7 +1,7 @@
 import logging
 
 from aiogram import Dispatcher
-from aiogram.filters import Command, CommandStart
+from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.types import Message
 from aiogram import F
 from aiogram.fsm.context import FSMContext
@@ -10,13 +10,25 @@ from bot.keyboards.reply import *
 from bot.keyboards.inline import *
 from bot.misc.states import LocationStates
 
+from utils.database.db_worker import DBWorker
+
+db_worker = DBWorker()
+
 
 async def get_start(message: Message, state: FSMContext):
-    if await state.get_state() == LocationStates.HAVE_LOCATION:
-        return await message.reply('Вы уже зарегистрированны\nХотите воспользоваться /settings?')
+    user = db_worker.get_user(message.from_user.id)
     await state.set_state(LocationStates.UNKNOWN_LOCATION)
-    await message.reply(f'Добро пожаловать, {message.from_user.first_name}!\nСначала настройте бота:',
-                        reply_markup=registration_keyboard())
+    if user is None:
+        db_worker.add_user(message.from_user.id)
+        return await message.reply(f'Добро пожаловать, {message.from_user.first_name}!\nСначала настройте бота:',
+                                   reply_markup=registration_keyboard())
+    await message.reply('Вы уже зарегистрированны')
+    answer = 'Хотите воспользоваться /settings?'
+    if user.location:
+        await state.set_state(LocationStates.HAVE_LOCATION)
+    else:
+        answer = 'У вас не выбрано местоположение\n' + answer
+    await message.answer(answer)
 
 
 async def change_location(message: Message, state: FSMContext):
@@ -33,6 +45,7 @@ async def set_location(message: Message, state: FSMContext):
         location = ...
     await state.set_state(LocationStates.HAVE_LOCATION)
     await state.set_data({'longlat': location})
+    db_worker.update_user_location(message.from_user.id, location)
     await message.reply(f'Ваше местоположение сохранено!', reply_markup=main_keyboard())
     logging.info(f'User`s {message.from_user.id} location - {location}')
 
@@ -56,7 +69,7 @@ async def show_settings(message: Message):
 def register_user_handlers(dp: Dispatcher):
     dp.message.register(get_start, CommandStart())
     dp.message.register(change_location, F.text == 'Настроить погоду')
-    dp.message.register(set_location, F.location)
+    dp.message.register(set_location, StateFilter(LocationStates.CHANGE_LOCATION))
 
     dp.message.register(show_today, F.text == 'Сегодня')
     dp.message.register(show_tomorrow, F.text == 'Завтра')
