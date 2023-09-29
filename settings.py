@@ -16,9 +16,24 @@ class DataBase:
 
 
 @dataclass
+class Weather:
+    api_key: str
+    server: str = 'openweathermap.org'
+
+
+@dataclass
+class Geocoder:
+    api_key: str
+    params: dict
+    url: str = 'https://geocode-maps.yandex.ru/1.x'
+
+
+@dataclass
 class Settings:
     bots: Bots
     database: DataBase
+    weather: Weather
+    geocoder: Geocoder
 
 
 def get_settings(path: str):
@@ -31,5 +46,14 @@ def get_settings(path: str):
         ),
         database=DataBase(
             path=getenv('DB_PATH')
+        ),
+        weather=Weather(
+            api_key=getenv('OWM_API_KEY')
+        ),
+        geocoder=Geocoder(
+            api_key=getenv('YANDEX_GEOCODER_API_KEY'),
+            params={
+                'format': 'json'
+            }
         )
     )

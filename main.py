@@ -1,18 +1,17 @@
 import asyncio
-import logging
 
 from aiogram import Bot, Dispatcher
 
 from settings import get_settings
 from bot.handlers.user import register_user_handlers
 from bot.misc.commands import set_commands
-
-logger = logging.getLogger(__name__)
+from utils.logger import logger
 
 
 async def start_bot(bot: Bot):
     await set_commands(bot)
     await bot.send_message(871333900, f'Bot Started!\n/start')
+    await bot.send_message(752981093, f'Bot Started!\n/start')
 
 
 async def stop_bot(bot: Bot):
@@ -27,10 +26,6 @@ def register_all_handlers(dp: Dispatcher):
 
 
 async def main():
-    logging.basicConfig(
-        level=logging.INFO,
-        format=u'%(filename)s:%(lineno)d #%(levelname)-8s [%(asctime)s] - %(name)s - %(message)s',
-    )
     logger.info('Starting bot')
 
     settings = get_settings('.env')

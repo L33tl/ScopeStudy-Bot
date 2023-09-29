@@ -34,13 +34,14 @@ class DBWorker:
     def add_user(self, tg_id: int, location: tuple = None):
         if location is None:
             location = tuple()
-        user = User(tg_id=tg_id, location=';'.join(str(el) for el in location))
+        print(location)
+        user = User(tg_id=tg_id, location=' '.join(str(el) for el in location))
         self.session.add(user)
         self.session.commit()
 
     @with_session
     def update_user_location(self, tg_id: int, location: tuple):
-        self.session.query(User).filter_by(tg_id=tg_id).update({User.location: location})
+        self.session.query(User).filter_by(tg_id=tg_id).update({User.location: ' '.join((str(el) for el in location))})
         self.session.commit()
 
     @with_session

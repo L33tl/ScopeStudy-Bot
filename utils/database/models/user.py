@@ -28,6 +28,7 @@ def wipe_user_table():
     DeclarativeBase.metadata.create_all(engine)
     db_session.commit()
     db_session.close()
+    print('users wiped!')
 
 
 if __name__ == '__main__':
