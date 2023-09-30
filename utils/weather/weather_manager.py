@@ -3,20 +3,13 @@ from collections import namedtuple
 
 from pyowm import OWM
 from pyowm.utils.config import get_default_config
+from pyowm.weatherapi25.observation import Observation
 
 from settings import get_settings
 from utils.exceptions.geocoder_exceptions import GeocoderHttpException, GeocoderToponymNotFoundException
-from bot.misc.tguser import Location
+from bot.misc.classes import Location
 
 import requests
-
-settings = get_settings('.env')
-
-weather_server = settings.weather.server
-config_dict = get_default_config()
-config_dict['language'] = 'ru'
-owm = OWM(settings.weather.api_key, config_dict)
-weather_mgr = owm.weather_manager()
 
 
 class WeatherManager:
@@ -61,7 +54,7 @@ class WeatherManager:
     def get_weather(mode: str | int, location: Location):
         match mode:
             case 1 | 'today':
-                return weather_mgr.weather_at_coords(lat=location.lat, lon=location.lon)
+                return weather_mgr.weather_at_coords(lat=location.lat, lon=location.lon).to_dict().get('weather')
             case 2 | 'tomorrow':
                 return weather_mgr.one_call(lat=location.lat, lon=location.lon).forecast_daily[1]
             case 5 | 'five':
@@ -71,5 +64,25 @@ class WeatherManager:
 
     @staticmethod
     def from_tuple(location: tuple[float | str, float | str]) -> Location:
-        print(location)
         return Location(lat=float(location[0]), lon=float(location[1]))
+
+
+if __name__ != '__main__':
+    settings = get_settings('.env')
+    weather_server = settings.weather.server
+    config_dict = get_default_config()
+    config_dict['language'] = 'ru'
+    owm = OWM(settings.weather.api_key, config_dict)
+    weather_mgr = owm.weather_manager()
+
+if __name__ == '__main__':
+    settings = get_settings('../../.env')
+
+    weather_server = settings.weather.server
+    config_dict = get_default_config()
+    config_dict['language'] = 'ru'
+    owm = OWM(settings.weather.api_key, config_dict)
+    weather_mgr = owm.weather_manager()
+
+    loc = Location(lat=56.90402, lon=60.585769)
+    print(WeatherManager.get_weather(1, loc))

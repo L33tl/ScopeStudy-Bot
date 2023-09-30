@@ -2,8 +2,9 @@ import asyncio
 
 from aiogram import Bot, Dispatcher
 
-from settings import get_settings
 from bot.handlers.user import register_user_handlers
+from bot.handlers.callbacks import register_callback_handlers
+from settings import get_settings
 from bot.misc.commands import set_commands
 from utils.logger import logger
 
@@ -23,6 +24,7 @@ def register_all_handlers(dp: Dispatcher):
     # dp.shutdown.register(stop_bot)
 
     register_user_handlers(dp)
+    register_callback_handlers(dp)
 
 
 async def main():

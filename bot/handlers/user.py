@@ -1,13 +1,14 @@
 from aiogram import Dispatcher
 from aiogram.filters import Command, CommandStart, StateFilter
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 from aiogram import F
 from aiogram.fsm.context import FSMContext
 
 from bot.keyboards.reply import *
 from bot.keyboards.inline import *
+from bot.misc.funs import day_weather_beautiful
 from bot.misc.states import LocationStates
-from bot.misc.tguser import TgUser, Location
+from bot.misc.classes import TgUser, Location
 
 from utils.database.db_worker import DBWorker
 from utils.logger import logger
@@ -61,12 +62,11 @@ async def set_location(message: Message, state: FSMContext):
 
 async def show_today(message: Message, state: FSMContext):
     user = await get_user_from_database(message.from_user.id, state)
-
     if await state.get_state() != LocationStates.HAVE_LOCATION:
         return await message.reply(f'У меня нет вашего местоположения\nУкажите его в настройках\n/settings')
-    print(user.location)
-    weather = WeatherManager.get_weather(mode=1, location=user.location).to_dict()
-    await message.reply(f"{weather['weather']['temperature']}")
+
+    weather = WeatherManager.get_weather(mode=1, location=user.location)
+    await message.reply(day_weather_beautiful(weather))
 
 
 async def show_tomorrow(message: Message):
