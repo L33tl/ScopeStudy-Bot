@@ -1,5 +1,3 @@
-from collections import namedtuple
-
 from aiogram import Dispatcher
 from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.types import Message
@@ -9,6 +7,7 @@ from aiogram.fsm.context import FSMContext
 from bot.keyboards.reply import *
 from bot.keyboards.inline import *
 from bot.misc.states import LocationStates
+from bot.misc.tguser import TgUser, Location
 
 from utils.database.db_worker import DBWorker
 from utils.logger import logger
@@ -19,28 +18,26 @@ from utils.exceptions.geocoder_exceptions import GeocoderException
 db_worker = DBWorker()
 
 
-async def get_start(message: Message, state: FSMContext):
-    user = db_worker.get_user(message.from_user.id)
-    if user is None:
+async def get_user_from_database(user_tg_id: int, state: FSMContext) -> TgUser:
+    data = db_worker.get_user(user_tg_id)
+    user = TgUser(user_tg_id)
+    if data is None:
+        db_worker.add_user(user_tg_id)
         await state.set_state(LocationStates.UNKNOWN_LOCATION)
-        db_worker.add_user(message.from_user.id)
-        return await message.reply(f'Добро пожаловать, {message.from_user.first_name}!\nСначала настройте бота:',
-                                   reply_markup=registration_keyboard())
-    await message.reply('Вы уже зарегистрированны')
-    answer = 'Хотите воспользоваться /settings?'
-    if user.location:
-        logger.info(f'{user.location}')
+        return user
+    if data.location is not None:
+        user.location = Location(*(float(el) for el in data.location.split()))
         await state.set_state(LocationStates.HAVE_LOCATION)
-        await state.set_data({'location': user.location.split()})
-    else:
-        answer = 'У вас не выбрано местоположение\n' + answer
-    await message.answer(answer)
+    return user
 
 
-async def change_location(message: Message, state: FSMContext):
+async def get_start(message: Message, state: FSMContext):
+    user = await get_user_from_database(message.from_user.id, state)
+    if user.location:
+        return await message.reply(f'Вы уже зарегистрированны!\nМожет быть Вы хотите открыть\n/settings')
     await state.set_state(LocationStates.CHANGE_LOCATION)
     await message.reply(
-        'Введите адрес (Обязательно напишите город, точность на ваше усмотрение) или просто отправьте свою геолокацию',
+        f'Для погоды необходима геолокация\nВведите адрес (Обязательно напишите город, точность на ваше усмотрение) или просто отправьте свою геолокацию',
         reply_markup=request_location_keyboard)
 
 
@@ -63,11 +60,12 @@ async def set_location(message: Message, state: FSMContext):
 
 
 async def show_today(message: Message, state: FSMContext):
+    user = await get_user_from_database(message.from_user.id, state)
+
     if await state.get_state() != LocationStates.HAVE_LOCATION:
         return await message.reply(f'У меня нет вашего местоположения\nУкажите его в настройках\n/settings')
-    weather = WeatherManager.get_weather(mode=1,
-                                         location=WeatherManager.from_tuple(
-                                             (await state.get_data()).get('location'))).to_dict()
+    print(user.location)
+    weather = WeatherManager.get_weather(mode=1, location=user.location).to_dict()
     await message.reply(f"{weather['weather']['temperature']}")
 
 
@@ -85,7 +83,6 @@ async def show_settings(message: Message):
 
 def register_user_handlers(dp: Dispatcher):
     dp.message.register(get_start, CommandStart())
-    dp.message.register(change_location, F.text == 'Настроить погоду')
     dp.message.register(set_location, StateFilter(LocationStates.CHANGE_LOCATION))
 
     dp.message.register(show_today, F.text == 'Сегодня')

@@ -6,6 +6,7 @@ from pyowm.utils.config import get_default_config
 
 from settings import get_settings
 from utils.exceptions.geocoder_exceptions import GeocoderHttpException, GeocoderToponymNotFoundException
+from bot.misc.tguser import Location
 
 import requests
 
@@ -16,8 +17,6 @@ config_dict = get_default_config()
 config_dict['language'] = 'ru'
 owm = OWM(settings.weather.api_key, config_dict)
 weather_mgr = owm.weather_manager()
-
-Location = namedtuple('Location', 'lat, lon')
 
 
 class WeatherManager:
