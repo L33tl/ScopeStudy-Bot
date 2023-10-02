@@ -19,6 +19,7 @@ class DataBase:
 class Weather:
     api_key: str
     server: str = 'openweathermap.org'
+    img_url: str = 'https://openweathermap.org/img/wn/'
 
 
 @dataclass

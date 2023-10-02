@@ -6,7 +6,6 @@ from aiogram.fsm.context import FSMContext
 
 from bot.keyboards.reply import *
 from bot.keyboards.inline import *
-from bot.misc.funs import day_weather_beautiful
 from bot.misc.states import LocationStates
 from bot.misc.classes import TgUser, Location
 
@@ -35,7 +34,8 @@ async def get_user_from_database(user_tg_id: int, state: FSMContext) -> TgUser:
 async def get_start(message: Message, state: FSMContext):
     user = await get_user_from_database(message.from_user.id, state)
     if user.location:
-        return await message.reply(f'Вы уже зарегистрированны!\nМожет быть Вы хотите открыть\n/settings')
+        return await message.reply(f'Вы уже зарегистрированны!\nМожет быть Вы хотите открыть\n/settings',
+                                   reply_markup=main_keyboard())
     await state.set_state(LocationStates.CHANGE_LOCATION)
     await message.reply(
         f'Для погоды необходима геолокация\nВведите адрес (Обязательно напишите город, точность на ваше усмотрение) или просто отправьте свою геолокацию',
@@ -65,12 +65,17 @@ async def show_today(message: Message, state: FSMContext):
     if await state.get_state() != LocationStates.HAVE_LOCATION:
         return await message.reply(f'У меня нет вашего местоположения\nУкажите его в настройках\n/settings')
 
-    weather = WeatherManager.get_weather(mode=1, location=user.location)
-    await message.reply(day_weather_beautiful(weather))
+    weather = WeatherManager.get_beauty_weather(mode=1, location=user.location)
+    await message.reply(weather)
 
 
-async def show_tomorrow(message: Message):
-    pass
+async def show_tomorrow(message: Message, state: FSMContext):
+    user = await get_user_from_database(message.from_user.id, state)
+    if await state.get_state() != LocationStates.HAVE_LOCATION:
+        return await message.reply(f'У меня нет вашего местоположения\nУкажите его в настройках\n/settings')
+
+    weather = WeatherManager.get_beauty_weather(mode=2, location=user.location)
+    await message.reply(weather)
 
 
 async def show_chosen_day(message: Message):
