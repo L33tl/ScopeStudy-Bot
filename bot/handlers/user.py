@@ -88,7 +88,7 @@ async def show_settings(message: Message):
 
 
 async def echo(message: Message):
-    await message.reply('Ничо не понял, но админу написал', reply_markup=main_keyboard())
+    await message.reply('Ничего не понял, но админу написал', reply_markup=main_keyboard())
     print(
         f'from ({message.from_user.first_name} {message.from_user.last_name}) {message.from_user.full_name}:{message.from_user.id} - {message.text}')
 
