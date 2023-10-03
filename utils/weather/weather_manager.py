@@ -1,5 +1,3 @@
-import datetime
-import socket
 from collections import namedtuple
 
 from pyowm import OWM
@@ -7,7 +5,7 @@ from pyowm.utils.config import get_default_config
 
 from settings import get_settings
 from utils.exceptions.geocoder_exceptions import GeocoderHttpException, GeocoderToponymNotFoundException
-from bot.misc.classes import Location, WeatherDay, parse_weather
+from bot.misc.classes import Location, Weather, parse_weather
 
 import requests
 
@@ -44,38 +42,55 @@ class WeatherManager:
 
     @classmethod
     def get_weather(cls, mode: str | int, location: Location):
+        url = f"https://api.openweathermap.org/data/2.5/onecall?lat={location.lat}&lon={location.lon}&exclude=current,minutely,hourly,alerts&lang=ru&appid={settings.weather.api_key}"
+
+
+
+        daily_data = requests.get(url)
+        if daily_data.status_code == 200:
+            daily_data = daily_data.json()['daily']
+        else:
+            print('error')
+
         match mode:
             case 1 | 'today':
-                return weather_mgr.weather_at_coords(lat=location.lat, lon=location.lon).to_dict().get('weather')
+                return daily_data[0]
             case 2 | 'tomorrow':
-                return weather_mgr.one_call(lat=location.lat, lon=location.lon).forecast_hourly[24:]
-            case 5 | 'five':
-                return weather_mgr.one_call(lat=location.lat, lon=location.lon).forecast_daily
-            case 7 | 'week':
-                return weather_mgr.one_call(lat=location.lat, lon=location.lon).forecast_hourly
+                return daily_data[1]
 
     @classmethod
-    def get_beauty_weather(cls, mode, location):
-        return cls.beautify_weather(cls.get_weather(mode, location))
-
-    @staticmethod
-    def from_tuple(location: tuple[float | str, float | str]) -> Location:
-        return Location(lat=float(location[0]), lon=float(location[1]))
+    def get_beauty_weather_day(cls, mode, location):
+        return cls.beautify_weather_day(cls.get_weather(mode, location))
 
     @classmethod
-    def beautify_weather(cls, weather: dict) -> str:
+    def beautify_weather_day(cls, weather: dict) -> str:
         # •{settings.weather.img_url}{weather.weather_icon_name}.png
-
-        weather: WeatherDay = parse_weather(weather)
+        weather: Weather = parse_weather(weather)
         print(f'<img src="{settings.weather.img_url}{weather.weather_icon_name}.png">')
-        result = f"""Погода на 📆{weather.reference_time.strftime('%d.%m.%Y')}    🕰{weather.reference_time.strftime('%H:%M')}"""
+        result = f"""Погода на 📆 {weather.reference_time.strftime('%d.%m.%Y')}
+        \n🗣️ {weather.description}\n\tОбщее облачное покрытие неба - {weather.clouds}%
+        """
         if weather.temperature:
             result += f"""
             \n🌡 Температура
-            \t•Текущая  {cls.to_celsius_from_kelvin(weather.temperature.temp)}°C
-            \t•Ощущается как  {cls.to_celsius_from_kelvin(weather.temperature.feels_like)}°C
-            \t•Минимальная  {cls.to_celsius_from_kelvin(weather.temperature.temp_min)}°C
-            \t•Максимальная  {cls.to_celsius_from_kelvin(weather.temperature.temp_max)}°C
+              • Максимальная  {cls.to_celsius_from_kelvin(weather.temperature.max)}°C
+              • Минимальная  {cls.to_celsius_from_kelvin(weather.temperature.min)}°C
+
+              🌻 Утро
+            \t• Средняя  {cls.to_celsius_from_kelvin(weather.temperature.morn)}°C
+            \t• Ощущается как  {cls.to_celsius_from_kelvin(weather.temperature.feels_like_morn)}°C
+            
+              ☀️ День
+            \t• Средняя  {cls.to_celsius_from_kelvin(weather.temperature.day)}°C
+            \t• Ощущается как  {cls.to_celsius_from_kelvin(weather.temperature.feels_like_day)}°C
+
+              🌇 Вечер
+            \t• Средняя  {cls.to_celsius_from_kelvin(weather.temperature.eve)}°C
+            \t• Ощущается как  {cls.to_celsius_from_kelvin(weather.temperature.feels_like_eve)}°C
+
+              🌙 Ночь
+            \t• Средняя  {cls.to_celsius_from_kelvin(weather.temperature.night)}°C
+            \t• Ощущается как  {cls.to_celsius_from_kelvin(weather.temperature.feels_like_night)}°C
             """
         if weather.wind:
             result += f"""\n🌬️ Ветер
@@ -84,27 +99,39 @@ class WeatherManager:
             \t 💨Порывы - {weather.wind.gust or 0} м/c
             """
         if weather.rain:
-            many = weather.rain.h3 is not None
             result += f"""\n🌧️ Дождь
-            \t За последни{'ие' if many else 'й'} {'3' if many else ''} час{'а' if many else ''} выпало {weather.rain.h3 if many else weather.rain.h1} мм осадков"""
+            \tВероятность -  {round(weather.precipitation_probability * 100)}%
+            \tОжидается {weather.rain} мм осадков"""
         if weather.snow:
-            many = weather.snow.h3 is not None
             result += f"""\n☃️ Снег
-            \t За последни{'ие' if many else 'й'} {'3' if many else ''} час{'а' if many else ''} выпало {weather.snow.h3 if many else weather.snow.h1} мм осадков"""
+            \tОжидается {weather.snow} мм осадков"""
+        if weather.pressure:
+            result += f'\n\n⏲️ Давление - {cls.to_mm_from_hpa(weather.pressure)} мм рт. ст.'
+
+        result += '\n\nУдачного Дня!💪'
+
         print(weather)
 
         return result
 
     @staticmethod
+    def from_tuple(location: tuple[float | str, float | str]) -> Location:
+        return Location(lat=float(location[0]), lon=float(location[1]))
+
+    @staticmethod
     def to_celsius_from_kelvin(kelvin):
         return round(kelvin - 273.15, 1)
+
+    @staticmethod
+    def to_mm_from_hpa(hpa):
+        return round(hpa * 0.750064, 1)
 
 
 if __name__ != '__main__':
     settings = get_settings('.env')
     weather_server = settings.weather.server
     config_dict = get_default_config()
-    config_dict['language'] = 'ru'
+    # config_dict['language'] = 'ru'
     owm = OWM(settings.weather.api_key, config_dict)
     weather_mgr = owm.weather_manager()
 
@@ -113,14 +140,11 @@ if __name__ == '__main__':
 
     weather_server = settings.weather.server
     config_dict = get_default_config()
-    config_dict['language'] = 'ru'
+    # config_dict['language'] = 'ru'
     owm = OWM(settings.weather.api_key, config_dict)
     weather_mgr = owm.weather_manager()
 
-    loc = Location(26.274030, 70.269901)
-    loc = Location(0, 0)
-    import json
+    loc = Location(lat=59.924176, lon=30.455071)
 
-    js = json.dumps(WeatherManager.get_weather(5, loc)[0].to_dict(), indent=3)
-    print(js)
-    # print('\n'.join(el for el in ((WeatherManager.get_weather(5, loc)))[-1].to_dict()))
+    # print('\n'.join(WeatherManager.get_weather(2, loc)['weather']))
+    print(WeatherManager.get_weather(2, loc)['weather'])
