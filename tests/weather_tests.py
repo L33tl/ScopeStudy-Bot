@@ -1,14 +1,12 @@
-from pyowm import OWM
-from pyowm.utils.config import get_default_config
-
 from bot.misc.classes import Location
-from settings import get_settings
 from utils.weather.weather_manager import WeatherManager
 
 from utils.exceptions.geocoder_exceptions import GeocoderToponymNotFoundException
 
 import unittest
 
+
+# For testing change a weather_manager.py settings path in a beginning of the file
 
 class TestWeatherManager(unittest.TestCase):
     def setUp(self) -> None:

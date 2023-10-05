@@ -1,8 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
-from typing import Callable
-
 from .models.user import User
 from settings import get_settings
 from ..logger import logger

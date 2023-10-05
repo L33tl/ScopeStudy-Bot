@@ -8,6 +8,10 @@ from aiogram_tests.handler import MessageHandler
 from aiogram_tests.types.dataset import MESSAGE
 
 
+# For testing change a utils/database/db_worker.py settings path in a beginning of the file
+
+# But actually aiogram_tests is not capable with aiogram version 3.
+
 @pytest.mark.asyncio
 async def test_echo():
     request = MockedBot(MessageHandler(echo))
