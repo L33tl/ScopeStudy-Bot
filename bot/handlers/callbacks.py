@@ -4,6 +4,7 @@ from aiogram.types import CallbackQuery
 
 from bot.keyboards.reply import request_location_keyboard
 from bot.misc.states import LocationStates
+from utils.logger import logger
 
 
 async def change_location(callback: CallbackQuery, state: FSMContext):
@@ -11,6 +12,7 @@ async def change_location(callback: CallbackQuery, state: FSMContext):
     await callback.message.reply(
         f'Введите адрес (Обязательно напишите город, точность на ваше усмотрение) или просто отправьте свою геолокацию',
         reply_markup=request_location_keyboard)
+    logger.info(f'location requested')
 
 
 def register_callback_handlers(dp: Dispatcher):

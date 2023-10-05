@@ -1,13 +1,16 @@
 from collections import namedtuple
 
-from pyowm import OWM
-from pyowm.utils.config import get_default_config
-
 from settings import get_settings
 from utils.exceptions.geocoder_exceptions import GeocoderHttpException, GeocoderToponymNotFoundException
 from bot.misc.classes import Location, Weather, parse_weather
 
 import requests
+
+settings = get_settings('.env')
+
+
+# for tests
+# settings = get_settings('../.env')
 
 
 class WeatherManager:
@@ -23,7 +26,7 @@ class WeatherManager:
                 f'{response.status_code}'
                 'Non-200 response from yandex geocoder'
             )
-        return response.json()['response']
+        return response.json()['response']['GeoObjectCollection']['featureMember']
 
     @classmethod
     def coordinates(cls, toponym: str) -> namedtuple:
@@ -32,7 +35,7 @@ class WeatherManager:
         Raises 'GeocoderToponymNotFoundException if nothing found.
 
         """
-        data = cls.get_location_by_toponym(toponym)['GeoObjectCollection']['featureMember']
+        data = cls.get_location_by_toponym(toponym)
 
         if not data:
             raise GeocoderToponymNotFoundException(f'{toponym} not found')
@@ -43,8 +46,7 @@ class WeatherManager:
     @classmethod
     def get_weather(cls, mode: str | int, location: Location):
         url = f"https://api.openweathermap.org/data/2.5/onecall?lat={location.lat}&lon={location.lon}&exclude=current,minutely,hourly,alerts&lang=ru&appid={settings.weather.api_key}"
-
-
+        print(f'weather url={url}')
 
         daily_data = requests.get(url)
         if daily_data.status_code == 200:
@@ -64,9 +66,7 @@ class WeatherManager:
 
     @classmethod
     def beautify_weather_day(cls, weather: dict) -> str:
-        # •{settings.weather.img_url}{weather.weather_icon_name}.png
         weather: Weather = parse_weather(weather)
-        print(f'<img src="{settings.weather.img_url}{weather.weather_icon_name}.png">')
         result = f"""Погода на 📆 {weather.reference_time.strftime('%d.%m.%Y')}
         \n🗣️ {weather.description}\n\tОбщее облачное покрытие неба - {weather.clouds}%
         """
@@ -110,8 +110,6 @@ class WeatherManager:
 
         result += '\n\nУдачного Дня!💪'
 
-        print(weather)
-
         return result
 
     @staticmethod
@@ -119,32 +117,17 @@ class WeatherManager:
         return Location(lat=float(location[0]), lon=float(location[1]))
 
     @staticmethod
-    def to_celsius_from_kelvin(kelvin):
+    def to_celsius_from_kelvin(kelvin: int):
         return round(kelvin - 273.15, 1)
 
     @staticmethod
-    def to_mm_from_hpa(hpa):
+    def to_mm_from_hpa(hpa: int):
         return round(hpa * 0.750064, 1)
 
-
-if __name__ != '__main__':
-    settings = get_settings('.env')
-    weather_server = settings.weather.server
-    config_dict = get_default_config()
-    # config_dict['language'] = 'ru'
-    owm = OWM(settings.weather.api_key, config_dict)
-    weather_mgr = owm.weather_manager()
 
 if __name__ == '__main__':
     settings = get_settings('../../.env')
 
-    weather_server = settings.weather.server
-    config_dict = get_default_config()
-    # config_dict['language'] = 'ru'
-    owm = OWM(settings.weather.api_key, config_dict)
-    weather_mgr = owm.weather_manager()
-
     loc = Location(lat=59.924176, lon=30.455071)
-
     # print('\n'.join(WeatherManager.get_weather(2, loc)['weather']))
     print(WeatherManager.get_weather(2, loc)['weather'])

@@ -26,9 +26,9 @@ async def get_user_from_database(user_tg_id: int, state: FSMContext) -> TgUser:
         await state.set_state(LocationStates.UNKNOWN_LOCATION)
         return user
     if data.location:
-        print(data)
         user.location = Location(*(float(el) for el in data.location.split()))
         await state.set_state(LocationStates.HAVE_LOCATION)
+    logger.info(f'user from db: {user}')
     return user
 
 
@@ -41,6 +41,7 @@ async def get_start(message: Message, state: FSMContext):
     await message.reply(
         f'Для погоды необходима геолокация\nПросто отправьте свою геолокацию или введите адрес (Обязательно напишите город, точность на ваше усмотрение)',
         reply_markup=request_location_keyboard)
+    logger.info(f'{user} pressed start')
 
 
 async def set_location(message: Message, state: FSMContext):
@@ -68,6 +69,7 @@ async def show_today(message: Message, state: FSMContext):
 
     weather = WeatherManager.get_beauty_weather_day(mode=1, location=user.location)
     await message.reply(weather)
+    logger.info(f'{user} got today weather')
 
 
 async def show_tomorrow(message: Message, state: FSMContext):
@@ -77,6 +79,7 @@ async def show_tomorrow(message: Message, state: FSMContext):
 
     weather = WeatherManager.get_beauty_weather_day(mode=2, location=user.location)
     await message.reply(weather)
+    logger.info(f'{user} got tomorrow weather')
 
 
 async def show_chosen_day(message: Message):
@@ -85,11 +88,12 @@ async def show_chosen_day(message: Message):
 
 async def show_settings(message: Message):
     await message.answer('Настройки', reply_markup=settings_keyboard)
+    logger.info(f'settings opened')
 
 
 async def echo(message: Message):
     await message.reply('Ничего не понял, но админу написал', reply_markup=main_keyboard())
-    print(
+    logger.info(
         f'from ({message.from_user.first_name} {message.from_user.last_name}) {message.from_user.full_name}:{message.from_user.id} - {message.text}')
 
 

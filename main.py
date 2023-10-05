@@ -12,7 +12,6 @@ from utils.logger import logger
 async def start_bot(bot: Bot):
     await set_commands(bot)
     await bot.send_message(871333900, f'Bot Started!\n/start')
-    await bot.send_message(752981093, f'Bot Started!\n/start')
     # await bot.send_message(752981093, f'Bot Started!\n/start')
 
 
